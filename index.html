@@ -1,0 +1,38 @@
+<html>
+  <head>
+    <title>Face Tracking em tempo Real</title>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.4.0/dist/tf.min.js"></script>  -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.6.0/dist/tf.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@0.0.1/dist/face-landmarks-detection.js"></script>
+  </head>
+  <body>
+    <style>
+      #botao {
+        text-align: end;
+      }
+    </style>
+      
+     <div style="width=640px; height=400px;position:absolute;"> <!-- style="width: 600px; float: left; position:absolute;"-->
+        <canvas id="output" style="width=50%; height=50%;"></canvas>
+      </div>
+    <div style="position:relative;">
+      <canvas id="fundo" style="width=640px; height=400px;width:100%; height:100%;"></canvas>
+      </div>
+          <video
+      id="webcam"
+      playsinline
+      style="
+            visibility: hidden;
+            width: 90%;
+            height: auto;
+            "
+    ></video>
+    
+
+
+    <script src="script.js" type="module"></script>
+    <script src="geometry.util.js" type="module"></script>
+    <script src="https://unpkg.com/mathjs@9.3.0/lib/browser/math.js"></script>
+    <h1></h1>
+  </body>
+</html>
