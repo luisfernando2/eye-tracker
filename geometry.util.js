@@ -69,22 +69,13 @@ export default class GeometryUtil {
     drawArrow([b[1], b[0]], [a[1], a[0]], output, 3);
     drawArrow([d[1], d[0]], [c[1], c[0]], output, 3);
     
-    //TESTE: ler localização da pupila, esperar 1s e ler de novo, comparar deslocamento e ir acumulando
-    /*
-    let mesh = face.scaledMesh;
-    var valor1, valor2, acumx=0, acumy=0;
-    valor1=mesh[473];
-    console.log("antes");
-    setTimeout(pupilaDireita,mesh,3000,valor2,valor1,acumx,a,b);  ERRO
-   */
-    
     
     //compensa moximento horizontal da pupila no eixo z
     let p1= math.squeeze(math.row(centered, 130)).toArray();//33, 130
     let p2= math.squeeze(math.row(centered, 173)).toArray();//173 ou 133?
     let p3=[(p1[0]-0.4+p2[0])/2,p1[1],p1[2]];
-   // let distH = p3[0]-e[0];  //positivo olha pra direita, negativo olha pra esquerda
-   /* if(distH>0){
+    let distH = p3[0]-e[0];  //positivo olha pra direita, negativo olha pra esquerda
+    if(distH>0){
       a=[a[0],a[1],a[2]+6*distH];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
       b=[b[0],b[1],b[2]-6*distH];
     }
@@ -92,32 +83,7 @@ export default class GeometryUtil {
       a=[a[0],a[1],a[2]-Math.abs(6*distH)];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
       b=[b[0],b[1],b[2]+Math.abs(6*distH)];
     }
-    */
     
-    //compensa moximento vertical da pupila no eixo z e desenha pontos no canva
-    let p4= math.squeeze(math.row(centered, 159)).toArray(); //cima
-    let p5= math.squeeze(math.row(centered, 145)).toArray(); //baixo
-    //let p6=[p4[0],(p4[1]+p5[1])/2,p4[2]];
-    /*output.fillStyle = "#FF2C35";
-    output.beginPath()
-    output.arc(p3[0], p6[1], 3, 0, 2 * Math.PI); //ponto central da pupila estimado
-    output.fill();
-    output.beginPath()
-    output.arc(p4[0], p4[1], 3, 0, 2 * Math.PI); //3 eh o raio
-    output.fill();
-    output.beginPath()
-    output.arc(p5[0], p5[1], 3, 0, 2 * Math.PI); //3 eh o raio
-    output.fill();
-    let distV = p6[1]-e[1];  //positivo olha pra cima, negativo olha pra baixo
-    if(distV>0){
-      c=[c[0],c[1],c[2]+10*distV];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
-      d=[d[0],d[1],d[2]-10*distV];
-    }
-    else if(distV<0){
-      c=[c[0],c[1],c[2]-Math.abs(10*distV)];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
-      d=[d[0],d[1],d[2]+Math.abs(10*distV)];
-    }*/
-
     
     // using pitagoras and identity functions
     let rx = math.subtract(a, b); //vetor que sai b e chega em a (a-b)
@@ -221,25 +187,4 @@ function drawArrow([ay, ax], [by, bx], ctx, lineWidth = 2) {
   ctx.stroke();
 }
 
-function distanciaEntrePontos(ponto1, ponto2){
-  return Math.sqrt(Math.pow((ponto1.x - ponto2.x), 2) + Math.pow((ponto1.y - ponto2.y), 2))
-}
-
-
-function pupilaDireita(mesh,valor2,valor1,acumx,a,b){
-  console.log("depois");
-  valor2=mesh[473];
-  
-  //eixo x
-  let distH =mesh[473][0]-valor1[0]; //ERRO
-   acumx+= Math.abs(distH);
-    if(distH>0){
-      a=[a[0],a[1],a[2]+6*acumx];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
-      b=[b[0],b[1],b[2]-6*acumx];
-    }
-    else if(distH<0){
-      a=[a[0],a[1],a[2]-Math.abs(6*acumx)];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
-      b=[b[0],b[1],b[2]+Math.abs(6*acumx)];
-    }
-}
 
