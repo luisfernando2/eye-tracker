@@ -97,8 +97,8 @@ export default class GeometryUtil {
     //compensa moximento vertical da pupila no eixo z e desenha pontos no canva
     let p4= math.squeeze(math.row(centered, 159)).toArray(); //cima
     let p5= math.squeeze(math.row(centered, 145)).toArray(); //baixo
-    //let p6=[p4[0],(p4[1]+p5[1])/2,p4[2]];
-    /*output.fillStyle = "#FF2C35";
+    let p6=[p4[0],(p4[1]+p5[1])/2,p4[2]];
+    output.fillStyle = "#FF2C35";
     output.beginPath()
     output.arc(p3[0], p6[1], 3, 0, 2 * Math.PI); //ponto central da pupila estimado
     output.fill();
@@ -116,7 +116,7 @@ export default class GeometryUtil {
     else if(distV<0){
       c=[c[0],c[1],c[2]-Math.abs(10*distV)];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
       d=[d[0],d[1],d[2]+Math.abs(10*distV)];
-    }*/
+    }
 
     
     // using pitagoras and identity functions
