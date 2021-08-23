@@ -61,7 +61,10 @@ export default class GeometryUtil {
     let b = math.squeeze(math.row(centered, 263)).toArray(); // right eye - 263 idx 
     let c = [(a[0] + b[0]) / 2, a[1], a[2]]; 
     let d = math.squeeze(math.row(centered, 152)).toArray(); //queixo; 
-    let e = math.squeeze(math.row(centered, 473)).toArray(); // pupila olho direito
+    let palpebra = math.squeeze(math.row(centered, 159)).toArray(); // palpebra 159
+    let eye1=math.squeeze(math.row(centered, 473)).toArray(); // pupila olho direito 473 
+    let eye2=math.squeeze(math.row(centered, 468)).toArray(); // pupila olho esquerdo 468 
+    let mediaOlhos =[(eye1[0]+eye2[0])/2,(eye1[1]+eye2[1])/2,(eye1[2]+eye2[2])/2]
     
     let canvas = document.getElementById("output");
     let output = canvas.getContext("2d");
@@ -69,35 +72,54 @@ export default class GeometryUtil {
     drawArrow([b[1], b[0]], [a[1], a[0]], output, 3);
     drawArrow([d[1], d[0]], [c[1], c[0]], output, 3);
     
-    //TESTE: ler localização da pupila, esperar 1s e ler de novo, comparar deslocamento e ir acumulando
-    /*
-    let mesh = face.scaledMesh;
-    var valor1, valor2, acumx=0, acumy=0;
-    valor1=mesh[473];
-    console.log("antes");
-    setTimeout(pupilaDireita,mesh,3000,valor2,valor1,acumx,a,b);  ERRO
-   */
     
-    
-    //compensa moximento horizontal da pupila no eixo z
-    let p1= math.squeeze(math.row(centered, 130)).toArray();//33, 130
-    let p2= math.squeeze(math.row(centered, 173)).toArray();//173 ou 133?
-    let p3=[(p1[0]-0.4+p2[0])/2,p1[1],p1[2]];
-   // let distH = p3[0]-e[0];  //positivo olha pra direita, negativo olha pra esquerda
-   /* if(distH>0){
-      a=[a[0],a[1],a[2]+6*distH];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
-      b=[b[0],b[1],b[2]-6*distH];
+    //Compensa moximento horizontal da pupila no eixo z
+  
+    let p1= math.squeeze(math.row(centered, 130)).toArray();//esq
+    let p2= math.squeeze(math.row(centered, 359)).toArray();//dir
+    let p3=[(p1[0]+p2[0])/2 -0.5,p1[1],p1[2]]; //ponto esperado no eixo x
+    let distH = p3[0] - mediaOlhos[0];  //positivo olha pra direita, negativo olha pra esquerda
+    if(distH > 0){
+      a=[a[0],a[1],a[2]+9*distH];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
+      b=[b[0],b[1],b[2]-9*distH];
     }
-    else if(distH<0){
-      a=[a[0],a[1],a[2]-Math.abs(6*distH)];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
-      b=[b[0],b[1],b[2]+Math.abs(6*distH)];
+    else if(distH < 0){
+      a=[a[0],a[1],a[2]-Math.abs(9*distH)];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
+      b=[b[0],b[1],b[2]+Math.abs(9*distH)];
     }
-    */
     
-    //compensa moximento vertical da pupila no eixo z e desenha pontos no canva
-    let p4= math.squeeze(math.row(centered, 159)).toArray(); //cima
-    let p5= math.squeeze(math.row(centered, 145)).toArray(); //baixo
-    let p6=[p4[0],(p4[1]+p5[1])/2,p4[2]];
+    
+    //Compensa movimento vertical da pálpebra no eixo z 
+    
+    let p4= math.squeeze(math.row(centered, 52)).toArray(); //cima
+    let p5= math.squeeze(math.row(centered, 230)).toArray(); //baixo
+    let p6=[p4[0],(p4[1]+p5[1])/2 +0.8,p4[2]]; // ponto esperado no eixo y
+    let p7=math.squeeze(math.row(centered, 473)).toArray(); // pupila olho direito
+    let p8=math.squeeze(math.row(centered, 468)).toArray(); // pupila olho esquerdo
+    var aux=p7[2]+p8[2];
+    if(aux>6.0){    //"Filtra" mudanças muito bruscas
+      aux=6.0;
+    }
+    if(aux<(-6.0)){
+      aux=-6.0;
+    }
+    p6[1]=p6[1]+ (aux/4); // compensa giro vertical da cabeça na posição esperada da pálpebra
+    let distV = p6[1]-palpebra[1];  //positivo olha pra cima, negativo olha pra baixo
+    if(distV>0){
+      c=[c[0],c[1],c[2]+8*distV];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
+      d=[d[0],d[1],d[2]-8*distV];
+    }
+    else if(distV<0){
+      c=[c[0],c[1],c[2]-Math.abs(8*distV)];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
+      d=[d[0],d[1],d[2]+Math.abs(8*distV)];
+    }
+    //console.log("esq:"+p7[2].toFixed(2)+"dir:"+p8[2].toFixed(2)+"aux:"+aux.toFixed(2));
+
+    //desenha alguns pontos no canvas para acompanharmos
+  /*  output.fillStyle = "#32EEDB";
+    output.beginPath()
+    output.arc(e[0], e[1], 3, 0, 2 * Math.PI); //ponto central da pupila estimado
+    output.fill();
     output.fillStyle = "#FF2C35";
     output.beginPath()
     output.arc(p3[0], p6[1], 3, 0, 2 * Math.PI); //ponto central da pupila estimado
@@ -107,17 +129,23 @@ export default class GeometryUtil {
     output.fill();
     output.beginPath()
     output.arc(p5[0], p5[1], 3, 0, 2 * Math.PI); //3 eh o raio
+    output.fill();*/
+    
+    output.fillStyle = "#32EEDB";
+    output.beginPath()
+    output.arc(p3[0], p3[1], 3, 0, 2 * Math.PI); //ponto central da pupila estimado
     output.fill();
-    let distV = p6[1]-e[1];  //positivo olha pra cima, negativo olha pra baixo
-    if(distV>0){
-      c=[c[0],c[1],c[2]+10*distV];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
-      d=[d[0],d[1],d[2]-10*distV];
-    }
-    else if(distV<0){
-      c=[c[0],c[1],c[2]-Math.abs(10*distV)];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
-      d=[d[0],d[1],d[2]+Math.abs(10*distV)];
-    }
-
+    output.fillStyle = "#FF2C35";
+    output.beginPath()
+    output.arc(mediaOlhos[0], mediaOlhos[1], 3, 0, 2 * Math.PI); //3 eh o raio
+    output.fill();
+    output.beginPath()
+    output.arc(p1[0], p1[1], 3, 0, 2 * Math.PI); //3 eh o raio
+    output.fill();
+    output.beginPath()
+    output.arc(p2[0], p2[1], 3, 0, 2 * Math.PI); //3 eh o raio
+    output.fill();
+   
     
     // using pitagoras and identity functions
     let rx = math.subtract(a, b); //vetor que sai b e chega em a (a-b)
@@ -187,7 +215,7 @@ math.import({
           _X[rowIndex][colIndex] = column - subs;
         } else if (y.length === row.length) {
           const subs = y[colIndex];
-          _X[rowIndex][colIndex] = column - subs;
+          _X[rowIndex][colIndex] = column - subs;''
         } else {
           throw Error(
             `Dimension of y ${y.length} and row ${row.length} are not compatible`
