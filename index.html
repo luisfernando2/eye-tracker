@@ -8,31 +8,43 @@
   <body>
     <style>
       #botao {
-        text-align: end;
+        width:20px; 
+        height:20px;
+        position:absolute;
+        bottom:0;
+        right:0;
+        left:0;
+        top:0;
+        margin:auto;
       }
     </style>
-      
-     <div style="width=640px; height=400px;position:absolute;"> <!-- style="width: 600px; float: left; position:absolute;"-->
-        <canvas id="output" style="width=50%; height=50%;"></canvas>
-      </div>
-    <div style="position:relative;">
-      <canvas id="fundo" style="width=640px; height=400px;width:100%; height:100%;"></canvas>
-      </div>
-          <video
+    
+        
+    <div style="width=640px; height=400px;position:absolute;">
+      <canvas id="output" style="width=50%; height=50%;"></canvas>
+    </div>
+    <div style="position:relative; ">
+      <button id = "botao" />!</button>
+      <canvas
+        id="fundo"
+        style="width=640px; height=400px;width:100%; height:100%;"
+      ></canvas>
+    <video
       id="webcam"
       playsinline
       style="
             visibility: hidden;
-            width: 90%;
-            height: auto;
+            width: 0%;
+            height: 0%;
             "
     ></video>
+    </div>
     
-
-
+    
+  
+    <script src="Rosto.js"></script>
     <script src="script.js" type="module"></script>
     <script src="geometry.util.js" type="module"></script>
     <script src="https://unpkg.com/mathjs@9.3.0/lib/browser/math.js"></script>
-    <h1></h1>
   </body>
 </html>
