@@ -37,8 +37,17 @@ export default class GeometryUtil {
       ((original - in_min) * (out_max - out_min)) / (in_max - in_min) + out_min
     );
   }
+  
+  //--------------------------------------------------------------------------------------------------
+  
+  /**
+   * scale a value
+   * @param {number[[]]} - famemesh keypoints
+   * @param {number[[3]]} - origin keypoint
+   * @returns {number[3], number[[3]]}
+   */
 
-  static computeHeadPoseEstimation(face, origem) {
+  static computeHeadPoseEstimation(face, origem,difx,dify) {
     const { annotations, scaledMesh } = face;
     const { leftCheek, rightCheek } = annotations;
     // grab the landmark points
@@ -72,20 +81,24 @@ export default class GeometryUtil {
     drawArrow([b[1], b[0]], [a[1], a[0]], output, 3);
     drawArrow([d[1], d[0]], [c[1], c[0]], output, 3);
     
+    //variaveis de escala
+    var mh=8;
+    var mv=8;
     
     //Compensa moximento horizontal da pupila no eixo z
   
     let p1= math.squeeze(math.row(centered, 130)).toArray();//esq
     let p2= math.squeeze(math.row(centered, 359)).toArray();//dir
-    let p3=[(p1[0]+p2[0])/2 -0.5,p1[1],p1[2]]; //ponto esperado no eixo x
+    let p3=[(p1[0]+p2[0])/2 -0.4,p1[1],p1[2]]; //ponto esperado no eixo x
+    p3[0]=p3[0]-difx   //fator de correção - calibração
     let distH = p3[0] - mediaOlhos[0];  //positivo olha pra direita, negativo olha pra esquerda
     if(distH > 0){
-      a=[a[0],a[1],a[2]+9*distH];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
-      b=[b[0],b[1],b[2]-9*distH];
+      a=[a[0],a[1],a[2]+mh*distH];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
+      b=[b[0],b[1],b[2]-mh*distH];
     }
     else if(distH < 0){
-      a=[a[0],a[1],a[2]-Math.abs(9*distH)];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
-      b=[b[0],b[1],b[2]+Math.abs(9*distH)];
+      a=[a[0],a[1],a[2]-Math.abs(mh*distH)];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
+      b=[b[0],b[1],b[2]+Math.abs(mh*distH)];
     }
     
     
@@ -96,6 +109,7 @@ export default class GeometryUtil {
     let p6=[p4[0],(p4[1]+p5[1])/2 +0.8,p4[2]]; // ponto esperado no eixo y
     let p7=math.squeeze(math.row(centered, 473)).toArray(); // pupila olho direito
     let p8=math.squeeze(math.row(centered, 468)).toArray(); // pupila olho esquerdo
+    p6[1]=p6[1]-dify; //fator de correção - calibração
     var aux=p7[2]+p8[2];
     if(aux>6.0){    //"Filtra" mudanças muito bruscas
       aux=6.0;
@@ -104,25 +118,33 @@ export default class GeometryUtil {
       aux=-6.0;
     }
     p6[1]=p6[1]+ (aux/4); // compensa giro vertical da cabeça na posição esperada da pálpebra
+    
+    if(aux>3.5){
+      mv=mv+aux-3.5
+    }
+    else{
+      mv=mv+3.5-aux
+    }
     let distV = p6[1]-palpebra[1];  //positivo olha pra cima, negativo olha pra baixo
     if(distV>0){
-      c=[c[0],c[1],c[2]+8*distV];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
-      d=[d[0],d[1],d[2]-8*distV];
+      c=[c[0],c[1],c[2]+mv*distV];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
+      d=[d[0],d[1],d[2]-mv*distV];
     }
     else if(distV<0){
-      c=[c[0],c[1],c[2]-Math.abs(8*distV)];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
-      d=[d[0],d[1],d[2]+Math.abs(8*distV)];
+      c=[c[0],c[1],c[2]-Math.abs(mv*distV)];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
+      d=[d[0],d[1],d[2]+Math.abs(mv*distV)];
     }
-    //console.log("esq:"+p7[2].toFixed(2)+"dir:"+p8[2].toFixed(2)+"aux:"+aux.toFixed(2));
+    console.log(aux.toFixed(2));
 
     //desenha alguns pontos no canvas para acompanharmos
-  /*  output.fillStyle = "#32EEDB";
+    //vertical
+    /*output.fillStyle = "#32EEDB";
     output.beginPath()
-    output.arc(e[0], e[1], 3, 0, 2 * Math.PI); //ponto central da pupila estimado
+    output.arc(palpebra[0], palpebra[1], 3, 0, 2 * Math.PI); //ponto central da pupila estimado
     output.fill();
     output.fillStyle = "#FF2C35";
     output.beginPath()
-    output.arc(p3[0], p6[1], 3, 0, 2 * Math.PI); //ponto central da pupila estimado
+    output.arc(p7[0], p6[1], 3, 0, 2 * Math.PI); //ponto central da pupila estimado
     output.fill();
     output.beginPath()
     output.arc(p4[0], p4[1], 3, 0, 2 * Math.PI); //3 eh o raio
@@ -130,7 +152,7 @@ export default class GeometryUtil {
     output.beginPath()
     output.arc(p5[0], p5[1], 3, 0, 2 * Math.PI); //3 eh o raio
     output.fill();*/
-    
+    //horizontal
     output.fillStyle = "#32EEDB";
     output.beginPath()
     output.arc(p3[0], p3[1], 3, 0, 2 * Math.PI); //ponto central da pupila estimado
@@ -160,16 +182,17 @@ export default class GeometryUtil {
 
     // create rotation matrix
     let rotationMatrix = math.matrix([rx, ry, rz]);
-
-    return { origin, rotationMatrix };
+    let ptx = p3;
+    let pty = p6;
+    return { origin, rotationMatrix, ptx, pty };
   }
-
-  static computeEyePoseEstimation() {}
+  
+  //--------------------------------------------------------------------------------------------------
 
   /**
-   * transform a rotation matrix into euler angles representation
    * @param R
    * @returns {{roll: *, pitch: *, yaw: *}}
+   * @description transform a rotation matrix into euler angles representation
    */
   static rotationMatrixToEulerAngles(R) {
     R = R.toArray(); // convert mat.js array to js native array
@@ -215,7 +238,7 @@ math.import({
           _X[rowIndex][colIndex] = column - subs;
         } else if (y.length === row.length) {
           const subs = y[colIndex];
-          _X[rowIndex][colIndex] = column - subs;''
+          _X[rowIndex][colIndex] = column - subs;
         } else {
           throw Error(
             `Dimension of y ${y.length} and row ${row.length} are not compatible`
@@ -226,6 +249,15 @@ math.import({
     return _X;
   }
 });
+  
+
+
+function distanciaEntrePontos(ponto1, ponto2){
+  return Math.sqrt(Math.pow((ponto1.x - ponto2.x), 2) + Math.pow((ponto1.y - ponto2.y), 2))
+}
+
+
+//--------------------------------------------------------------------------------------------------
 
 function drawArrow([ay, ax], [by, bx], ctx, lineWidth = 2) {
   var headlen = 10; // length of head in pixels
@@ -249,25 +281,4 @@ function drawArrow([ay, ax], [by, bx], ctx, lineWidth = 2) {
   ctx.stroke();
 }
 
-function distanciaEntrePontos(ponto1, ponto2){
-  return Math.sqrt(Math.pow((ponto1.x - ponto2.x), 2) + Math.pow((ponto1.y - ponto2.y), 2))
-}
-
-
-function pupilaDireita(mesh,valor2,valor1,acumx,a,b){
-  console.log("depois");
-  valor2=mesh[473];
-  
-  //eixo x
-  let distH =mesh[473][0]-valor1[0]; //ERRO
-   acumx+= Math.abs(distH);
-    if(distH>0){
-      a=[a[0],a[1],a[2]+6*acumx];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
-      b=[b[0],b[1],b[2]-6*acumx];
-    }
-    else if(distH<0){
-      a=[a[0],a[1],a[2]-Math.abs(6*acumx)];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
-      b=[b[0],b[1],b[2]+Math.abs(6*acumx)];
-    }
-}
 
