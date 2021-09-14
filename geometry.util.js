@@ -37,9 +37,9 @@ export default class GeometryUtil {
       ((original - in_min) * (out_max - out_min)) / (in_max - in_min) + out_min
     );
   }
-  
+
   //--------------------------------------------------------------------------------------------------
-  
+
   /**
    * scale a value
    * @param {number[[]]} - famemesh keypoints
@@ -47,7 +47,7 @@ export default class GeometryUtil {
    * @returns {number[3], number[[3]]}
    */
 
-  static computeHeadPoseEstimation(face, origem,difx,dify) {
+  static computeHeadPoseEstimation(face, origem, difx, dify,divx,divy) {
     const { annotations, scaledMesh } = face;
     const { leftCheek, rightCheek } = annotations;
     // grab the landmark points
@@ -66,79 +66,76 @@ export default class GeometryUtil {
     const centered = math.subtract_(points, math.mean(scaled, 0));
 
     // pick target coordinates
-    let a = math.squeeze(math.row(centered, 33)).toArray(); //left eyes - 33 idx 
-    let b = math.squeeze(math.row(centered, 263)).toArray(); // right eye - 263 idx 
-    let c = [(a[0] + b[0]) / 2, a[1], a[2]]; 
-    let d = math.squeeze(math.row(centered, 152)).toArray(); //queixo; 
+    let a = math.squeeze(math.row(centered, 33)).toArray(); //left eyes - 33 idx
+    let b = math.squeeze(math.row(centered, 263)).toArray(); // right eye - 263 idx
+    let c = [(a[0] + b[0]) / 2, a[1], a[2]];
+    let d = math.squeeze(math.row(centered, 152)).toArray(); //queixo;
     let palpebra = math.squeeze(math.row(centered, 159)).toArray(); // palpebra 159
-    let eye1=math.squeeze(math.row(centered, 473)).toArray(); // pupila olho direito 473 
-    let eye2=math.squeeze(math.row(centered, 468)).toArray(); // pupila olho esquerdo 468 
-    let mediaOlhos =[(eye1[0]+eye2[0])/2,(eye1[1]+eye2[1])/2,(eye1[2]+eye2[2])/2]
-    
+    let eye1 = math.squeeze(math.row(centered, 473)).toArray(); // pupila olho direito 473
+    let eye2 = math.squeeze(math.row(centered, 468)).toArray(); // pupila olho esquerdo 468
+    let mediaOlhos = [
+      (eye1[0] + eye2[0]) / 2,
+      (eye1[1] + eye2[1]) / 2,
+      (eye1[2] + eye2[2]) / 2
+    ];
+
     let canvas = document.getElementById("output");
     let output = canvas.getContext("2d");
     //desenha vetores que orientam eixos x e y
     drawArrow([b[1], b[0]], [a[1], a[0]], output, 3);
     drawArrow([d[1], d[0]], [c[1], c[0]], output, 3);
-    
+
     //variaveis de escala
-    var mh=8;
-    var mv=8;
-    
+    var mh = 8;
+    var mv = 8;
+
     //Compensa moximento horizontal da pupila no eixo z
-  
-    let p1= math.squeeze(math.row(centered, 130)).toArray();//esq
-    let p2= math.squeeze(math.row(centered, 359)).toArray();//dir
-    let p3=[(p1[0]+p2[0])/2 -0.4,p1[1],p1[2]]; //ponto esperado no eixo x
-    p3[0]=p3[0]-difx   //fator de correção - calibração
-    let distH = p3[0] - mediaOlhos[0];  //positivo olha pra direita, negativo olha pra esquerda
-    if(distH > 0){
-      a=[a[0],a[1],a[2]+mh*distH];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
-      b=[b[0],b[1],b[2]-mh*distH];
+
+    let p1 = math.squeeze(math.row(centered, 130)).toArray(); //esq
+    let p2 = math.squeeze(math.row(centered, 359)).toArray(); //dir
+    let p3 = [(p1[0] + p2[0]) / divx , p1[1], p1[2]]; //ponto esperado no eixo x
+    p3[0] = p3[0] - difx; //fator de correção - calibração
+    let distH = p3[0] - mediaOlhos[0]; //positivo olha pra direita, negativo olha pra esquerda
+    if (distH > 0) {
+      a = [a[0], a[1], a[2] + mh * distH]; //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
+      b = [b[0], b[1], b[2] - mh * distH];
+    } else if (distH < 0) {
+      a = [a[0], a[1], a[2] - Math.abs(mh * distH)]; //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
+      b = [b[0], b[1], b[2] + Math.abs(mh * distH)];
     }
-    else if(distH < 0){
-      a=[a[0],a[1],a[2]-Math.abs(mh*distH)];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
-      b=[b[0],b[1],b[2]+Math.abs(mh*distH)];
+    let ptx = p3;
+
+    //Compensa movimento vertical da pálpebra no eixo z
+
+    let p4 = math.squeeze(math.row(centered, 52)).toArray(); //cima
+    let p5 = math.squeeze(math.row(centered, 230)).toArray(); //baixo
+    let p6 = [p4[0], (p4[1] + p5[1]) / divy , p4[2]]; // ponto esperado no eixo y
+    let p7 = math.squeeze(math.row(centered, 473)).toArray(); // pupila olho direito
+    let p8 = math.squeeze(math.row(centered, 468)).toArray(); // pupila olho esquerdo
+    p6[1] = p6[1] - dify; //fator de correção - calibração
+    var aux = p7[2] + p8[2];
+    if (aux > 6.0) {
+      aux = 6.0;        //"Filtra" mudanças muito bruscas
     }
-    
-    
-    //Compensa movimento vertical da pálpebra no eixo z 
-    
-    let p4= math.squeeze(math.row(centered, 52)).toArray(); //cima
-    let p5= math.squeeze(math.row(centered, 230)).toArray(); //baixo
-    let p6=[p4[0],(p4[1]+p5[1])/2 +0.8,p4[2]]; // ponto esperado no eixo y
-    let p7=math.squeeze(math.row(centered, 473)).toArray(); // pupila olho direito
-    let p8=math.squeeze(math.row(centered, 468)).toArray(); // pupila olho esquerdo
-    p6[1]=p6[1]-dify; //fator de correção - calibração
-    var aux=p7[2]+p8[2];
-    if(aux>6.0){    //"Filtra" mudanças muito bruscas
-      aux=6.0;
+    if (aux < -6.0) {
+      aux = -6.0;
     }
-    if(aux<(-6.0)){
-      aux=-6.0;
+    p6[1] = p6[1] + aux / 3; // compensa giro vertical da cabeça na posição esperada da pálpebra
+
+    let distV = p6[1] - palpebra[1]; //positivo olha pra cima, negativo olha pra baixo
+    if (distV > 0) {
+      c = [c[0], c[1], c[2] + mv * distV * 1.3]; //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
+      d = [d[0], d[1], d[2] - mv * distV * 1.3];
+    } else if (distV < 0) {
+      c = [c[0], c[1], c[2] - Math.abs(mv * distV)]; //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
+      d = [d[0], d[1], d[2] + Math.abs(mv * distV)];
     }
-    p6[1]=p6[1]+ (aux/4); // compensa giro vertical da cabeça na posição esperada da pálpebra
-    
-    if(aux>3.5){
-      mv=mv+aux-3.5
-    }
-    else{
-      mv=mv+3.5-aux
-    }
-    let distV = p6[1]-palpebra[1];  //positivo olha pra cima, negativo olha pra baixo
-    if(distV>0){
-      c=[c[0],c[1],c[2]+mv*distV];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
-      d=[d[0],d[1],d[2]-mv*distV];
-    }
-    else if(distV<0){
-      c=[c[0],c[1],c[2]-Math.abs(mv*distV)];  //z aumenta quando se afasta da tela, e diminui quando nos aproximamos
-      d=[d[0],d[1],d[2]+Math.abs(mv*distV)];
-    }
-    console.log(aux.toFixed(2));
+    let pty = p6;
+     console.log(aux.toFixed(2));
 
     //desenha alguns pontos no canvas para acompanharmos
     //vertical
-    /*output.fillStyle = "#32EEDB";
+   /* output.fillStyle = "#32EEDB";
     output.beginPath()
     output.arc(palpebra[0], palpebra[1], 3, 0, 2 * Math.PI); //ponto central da pupila estimado
     output.fill();
@@ -153,26 +150,25 @@ export default class GeometryUtil {
     output.arc(p5[0], p5[1], 3, 0, 2 * Math.PI); //3 eh o raio
     output.fill();*/
     //horizontal
-    output.fillStyle = "#32EEDB";
-    output.beginPath()
+   output.fillStyle = "#32EEDB";
+    output.beginPath();
     output.arc(p3[0], p3[1], 3, 0, 2 * Math.PI); //ponto central da pupila estimado
     output.fill();
     output.fillStyle = "#FF2C35";
-    output.beginPath()
+    output.beginPath();
     output.arc(mediaOlhos[0], mediaOlhos[1], 3, 0, 2 * Math.PI); //3 eh o raio
     output.fill();
-    output.beginPath()
+    output.beginPath();
     output.arc(p1[0], p1[1], 3, 0, 2 * Math.PI); //3 eh o raio
     output.fill();
-    output.beginPath()
+    output.beginPath();
     output.arc(p2[0], p2[1], 3, 0, 2 * Math.PI); //3 eh o raio
     output.fill();
-   
-    
+
     // using pitagoras and identity functions
     let rx = math.subtract(a, b); //vetor que sai b e chega em a (a-b)
     rx = math.divide(rx, math.norm(rx));
-    
+
     // using pitagoras and identity functions
     let ry = math.subtract(c, d);
     ry = math.divide(ry, math.norm(ry));
@@ -182,11 +178,9 @@ export default class GeometryUtil {
 
     // create rotation matrix
     let rotationMatrix = math.matrix([rx, ry, rz]);
-    let ptx = p3;
-    let pty = p6;
     return { origin, rotationMatrix, ptx, pty };
   }
-  
+
   //--------------------------------------------------------------------------------------------------
 
   /**
@@ -249,13 +243,12 @@ math.import({
     return _X;
   }
 });
-  
 
-
-function distanciaEntrePontos(ponto1, ponto2){
-  return Math.sqrt(Math.pow((ponto1.x - ponto2.x), 2) + Math.pow((ponto1.y - ponto2.y), 2))
+function distanciaEntrePontos(ponto1, ponto2) {
+  return Math.sqrt(
+    Math.pow(ponto1.x - ponto2.x, 2) + Math.pow(ponto1.y - ponto2.y, 2)
+  );
 }
-
 
 //--------------------------------------------------------------------------------------------------
 
@@ -280,5 +273,3 @@ function drawArrow([ay, ax], [by, bx], ctx, lineWidth = 2) {
   ctx.strokeStyle = "pink";
   ctx.stroke();
 }
-
-
