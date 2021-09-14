@@ -1,6 +1,6 @@
 const math = window.math;
 import GeometryUtil from "./geometry.util.js";
-import Rosto from "./rosto.js";
+//import Rosto from "./rosto.js";
 
 /*const botaopos = document.getElementById("botao")*/
 const fundo = document.getElementById("fundo");
@@ -9,9 +9,17 @@ const botao = document.getElementById("botao");
 let mesh;
 var pontox;
 var pontoy;
-var dify = 0;
 var difx = 0;
-var cont = 1;
+var dify = 0;
+var divx = 2;
+var divy = 2;
+var vetx = [];
+var vety = [];
+var cont = 0; // tem que ser 1 se usar click
+var olho_direito;
+var olho_esquerdo;
+var re;
+var le;
 
 const NUM_KEYPOINTS = 468;
 const NUM_IRIS_KEYPOINTS = 5;
@@ -96,15 +104,30 @@ async function trackFace() {
       c = [];
     let x, y;
     mesh = face.scaledMesh;
-    const r = new Rosto(mesh);
-    let le = mesh[468]; // left eye coordinates
-    let re = mesh[473]; // right eye coordinates
+    let can = document.getElementById("output");
+    let out = can.getContext("2d");
+    var r = new Rosto(mesh);
+    olho_direito = r.olho.direito.pupila;
+    olho_esquerdo = r.olho.esquerdo.pupila;
+    re = olho_direito.centro; // right eye coordinates centro: pontos[473], cima: pontos[475],
+    // direita: pontos[474], baixo: pontos[477], esquerda: pontos[476]
+
+    le = olho_esquerdo.centro; // left eye coordinates  centro: pontos[468],
+    //cima: pontos[470],
+    //direita: pontos[469],
+    //baixo: pontos[472],
+    //esquerda: pontos[471]
     x = (le[0] + re[0]) / 2;
     y = (le[1] + re[1]) / 2;
     //TESTE PROJETAR VETORES X,Y,Z
     contexto.clearRect(0, 0, fundo.width, fundo.height);
     const centroide = math.mean(
-      [mesh[470], mesh[472], mesh[469], mesh[471]],
+      [
+        olho_esquerdo.cima,
+        olho_esquerdo.direita,
+        olho_esquerdo.baixo,
+        olho_esquerdo.esquerda
+      ],
       0
     );
     const {
@@ -115,10 +138,17 @@ async function trackFace() {
       roll,
       ptx,
       pty
-    } = computeHeadRotation(face, mesh[4], difx, dify);
+    } = computeHeadRotation(face, mesh[4], difx, dify, divx, divy);
     pontox = ptx;
     pontoy = pty;
     drawAxis(contexto, origin, rotationMatrix); //contexto para seta no meio da tela, output no video
+    
+    var z= re[2]+le[2];
+    contexto.font = "40px Arial";
+    contexto.strokeText(z.toFixed(2), keypoints[10][0], keypoints[10][1]);
+    
+    var eyesDistance = math.norm(math.subtract(keypoints[473], keypoints[468]));
+    //console.log(eyesDistance)
   });
   requestAnimationFrame(trackFace);
 }
@@ -133,6 +163,7 @@ async function trackFace() {
   video.height = videoHeight;
 
   let canvas = document.getElementById("output");
+
   canvas.width = video.width;
   canvas.height = video.height;
 
@@ -166,13 +197,13 @@ async function trackFace() {
   trackFace();
 })();
 
-function computeHeadRotation(face, origem, x, y) {
+function computeHeadRotation(face, origem, x, y,dx,dy) {
   var {
     origin,
     rotationMatrix,
     ptx,
     pty
-  } = GeometryUtil.computeHeadPoseEstimation(face, origem, x, y);
+  } = GeometryUtil.computeHeadPoseEstimation(face, origem, x, y,dx,dy);
   const { pitch, yaw, roll } = GeometryUtil.rotationMatrixToEulerAngles(
     rotationMatrix
   );
@@ -242,19 +273,85 @@ function drawArrow([ay, ax], [by, bx], color, scale, ctx, lineWidth = 2) {
   ctx.stroke();
 }
 
-const click = function calibra() {  // 5x poderia descartar o maior e o menor valor?
+const click3 = function calibra3() { 
+  if (cont < 5) {
+    vetx[cont] = (mesh[130][0] + mesh[359][0]) / ((mesh[473][0] + mesh[468][0])/2);
+    vety[cont] = (mesh[52][1] + mesh[230][1]) / mesh[159][1];
+    console.log(vetx[cont]);
+    cont++;
+  }
+  if (cont == 5) {
+    vetx.sort();
+    vety.sort();
+    vetx.pop();
+    vety.pop();
+    vetx.shift();
+    vety.shift();
+    divx = math.mean(vetx); 
+    divy = math.mean(vety);
+    cont = 6;
+    console.log(divx + "," + divy);
+  }
+};
+
+const click2 = function calibra() {
+  if (cont < 5) {
+    vetx[cont] = (olho_direito.centro[0] + olho_esquerdo.centro[0] ) / 2;
+    vety[cont] = mesh[159][1];
+    console.log(vetx[cont]);
+    cont++;
+  }
+  if (cont == 5) {
+    vetx.sort();
+    vety.sort();
+    vetx.pop();
+    vety.pop();
+    vetx.shift();
+    vety.shift();
+    difx = pontox[0] - math.mean(vetx);
+    dify = pontoy[1] - math.mean(vety);
+    cont = 6;
+    console.log(difx + "," + dify);
+  }
+};
+const click = function calibra() {
   cont++;
   difx = (difx + (pontox[0] - (mesh[473][0] + mesh[468][0]) / 2)) / cont;
   dify = (dify + (pontoy[1] - mesh[159][1])) / cont;
   console.log(difx, dify);
 };
-botao.onclick = click;
 
-function draw(x, y, canvas, cor = "#000000") {
-  const ctx = canvas.getContext("2d");
+botao.onclick = click3;
+
+function draw(x, y, ctx, cor = "#00ff00", raio = 5) {
   ctx.fillStyle = cor;
   ctx.beginPath();
-  ctx.arc(x, y, 5, 0, Math.PI * 2, true);
+  ctx.arc(x, y, raio, 0, Math.PI * 2, true);
   ctx.fill();
 }
 
+class Rosto {
+  constructor(pontos) {
+    this.olho = {
+      direito: {
+        pupila: {
+          centro: pontos[473],
+          cima: pontos[475],
+          direita: pontos[474],
+          baixo: pontos[477],
+          esquerda: pontos[476]
+        }
+      },
+
+      esquerdo: {
+        pupila: {
+          centro: pontos[468],
+          cima: pontos[470],
+          direita: pontos[469],
+          baixo: pontos[472],
+          esquerda: pontos[471]
+        }
+      }
+    };
+  }
+}
